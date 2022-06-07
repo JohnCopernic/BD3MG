@@ -4,6 +4,8 @@ import time
 import os, sys
 import numpy as np
 from scipy.io import loadmat
+from scipy.io import savemat
+
 warnings.filterwarnings("ignore")
 sys.path.append(os.getcwd())
 
@@ -16,7 +18,7 @@ from adjblur_alt_z import adjblur_alt_z
 I = loadmat(os.getcwd() + '/Images/FlyBrain.mat')['I']
 Nx = 128
 Ny = Nx
-Nz = 24
+Nz = 23
 sli = slice(0,256,int(256/Nx))
 I = I[sli,sli,:Nz]
 
@@ -53,13 +55,14 @@ y = Iblurnoisy.reshape(Nx*Ny, Nz)
 
 
 pool = mp.Pool(mp.cpu_count())
-results = [adjblur_alt_z, args=(Iblurnoisy, z, Nh, Nx, Ny, Nz, Sx, Sy, Sz, Phiy, Phiz)) for z in range(Nz)]
+results = [pool.apply(adjblur_alt_z, args=(Iblurnoisy, z, Nh, Nx, Ny, Nz, Sx, Sy, Sz, Phiy, Phiz)) for z in range(Nz)]
 pool.close()
 Hty, H1Z  = zip(*results)
 Hty= np.dstack(Hty)
 H1 = np.dstack([H1Z[z][:,:,z] for z in range(len(H1Z))])
 
-np.savetxt('blurred_image.txt', y)
+
+savemat(os.getcwd() + "/outputs/test_3D_blurred.mat", {"y_blurred": y})
 print('Initialization done')
 print('Starting restoration...')
 
@@ -67,7 +70,7 @@ print('Starting restoration...')
 
 #Initialisation
 Timemax = 600
-NbIt = 10 #Max iterations number
+NbIt = 500 #Max iterations number
 #Regularization parameters:
 lambda_ = 1
 delta = 2
@@ -90,16 +93,12 @@ Crits = {}
 ratio = {}
 SNR = {}
 
+cores=40
+print("nb of cores :", cores)
 
+start=time.time()
 
-stopping_criterion = 1e-6
-"""pool = mp.Pool(mp.cpu_count())
-results = [pool.apply(adjblur_alt_z, args=(Iblurnoisy, z, Nh, Nx, Ny, Nz, Sx, Sy, Sz, Phiy, Phiz)) for z in range(Nz)]
-pool.close()"""
-
-cores=mp.cpu_count()
-print("nb de coeurs :",cores)
-BD3MG = APAR3MG_MPI(y, h, Hty, H1, eta, tau, lambda_, delta, xmin, xmax, phi, x0, I, Nx, Ny, Nz,NbIt, Timemax, epsilon=stopping_criterion, cores_number=cores, setting=None)
+BD3MG = APAR3MG_MPI(y, h, Hty, H1, eta, tau, lambda_, delta, xmin, xmax, phi, x0, I, Nx, Ny, Nz,NbIt, Timemax, epsilon=1e-5, cores_number=cores, setting=None)
 BD3MG.optimize()
 
 #Collecting and saving statistics
@@ -107,15 +106,13 @@ Crits[cores] = BD3MG.Crit
 Times[cores] = np.cumsum(BD3MG.Time)
 Total_times[cores] = Times[cores][-1]
 SNR[cores] = BD3MG.SNR
-np.savetxt('y_restaured.txt', y)
-print(Total_times)
+x=BD3MG.x
+timer=time.time()-start
+print("timer is :", timer)
+
 
 f = open("Times.txt","w")
 f.write( str(Times) )
-f.close()
-
-f = open("Total times.txt","w")
-json.dump(Total_times, f)
 f.close()
 
 f = open("Crits.txt","w")
@@ -129,3 +126,8 @@ f.close()
 f = open("SNR.txt","w")
 f.write( str(SNR) )
 f.close()
+
+
+savemat(os.getcwd() + "/outputs/test_3D_restored.mat", {"x": x})
+
+
