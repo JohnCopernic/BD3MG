@@ -1,6 +1,6 @@
 # Block Distributed Majorize-Minimize Memory Gradient Algorithm
 
-This repository contains the Python implementation of the *Block Distributed Majorize-Minimize Memory Gradient Algorithm* applied to the problem of 3D images restoration potentially handling a depth-variant blur. Originally coded by Mathieu Chalvidal, it has been improved and tested in an academic project of CentraleSupélec. 
+This repository contains the Python implementation of the *Block Distributed Majorize-Minimize Memory Gradient Algorithm* applied to the problem of 3D images restoration potentially handling a depth-variant blur. Originally coded by Mathieu Chalvidal, it has been improved and tested in an academic project in CentraleSupélec. 
 
 ![Deblurring](/flybrainrec.png)
 
